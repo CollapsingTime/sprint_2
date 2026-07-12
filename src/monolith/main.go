@@ -74,11 +74,13 @@ func initDB() {
 	var err error
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
+		log.Fatalf("Err Open: %v", err)
 		log.Fatal(err)
 	}
 
 	err = db.Ping()
 	if err != nil {
+		log.Fatalf("Err Ping: %v", err)
 		log.Fatal(err)
 	}
 	log.Println("Successfully connected to database")
