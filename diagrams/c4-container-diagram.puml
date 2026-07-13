@@ -1,0 +1,53 @@
+@startuml C4_Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Container diagram To-Be Микросервисная Архитектура "КиноБездна"
+
+Person(client, "Пользователь", "Пользователь сервиса: мобильные устройства, ноутбуки, Smart TV")
+
+System_Ext(recomendationSystem, "Рекомендательная система", "Сторонний сервис персональных подборок")
+
+System_Ext(paymentGateway, "Эквайринг (платежный шлюз)", "Внешний эквайринг")
+
+System_Ext(loyaltyService, "Сервис лояльности", "Система бонусов и скидок")
+
+System_Boundary(cinema, "КиноБездна") {
+    Container(gateway, "API Gateway", "Go", "Единая точка входа. Маршрутизация запросов к микросервисам. REST API")
+
+    Container(movieService, "Movies Service", "Go, PostgreSQL", "Метаданные фильмов: жанры, актеры, рейтинги, оценки")
+    Container(userService, "User Service", "Go, PostgreSQL", "Управление пользователями: регистрация, авторизация, профиль")
+    Container(paymentService, "Payments Service", "Go, PostgreSQL", "Обработка платежей: списания, возвраты, история")
+    Container(subscriptionService, "Subscriptions Service", "Go, PostgreSQL", "Управление подписками: тарифы, продление, отмена")
+    Container(eventService, "Events Service", "Go, Kafka", "Событийный сервис: Producer + Consumer. Логирование событий")
+
+    ContainerDb(pg_movies, "PostgreSQL (movieService)", "PostgreSQL", "Метаданные фильмов")
+    ContainerDb(pg_users, "PostgreSQL (userService)", "PostgreSQL", "Данные пользователей")
+    ContainerDb(pg_payments, "PostgreSQL (paymentService)", "PostgreSQL", "Данные платежей")
+    ContainerDb(pg_subs, "PostgreSQL (subscriptionService)", "PostgreSQL", "Данные подписок")
+
+    ContainerQueue(kafka, "Kafka", "Apache Kafka", "Брокер сообщений: movie-events, user-events, payment-events")
+}
+
+Rel(client, gateway, "REST API", "HTTPS")
+
+Rel(gateway, movieService, "/api/movies", "HTTP")
+Rel(gateway, userService, "/api/users", "HTTP")
+Rel(gateway, paymentService, "/api/payments", "HTTP")
+Rel(gateway, subscriptionService, "/api/subscriptions", "HTTP")
+Rel(gateway, eventService, "/api/events/*", "HTTP")
+
+Rel(movieService, pg_movies, "Чтение/запись", "SQL")
+Rel(userService, pg_users, "Чтение/запись", "SQL")
+Rel(paymentService, pg_payments, "Чтение/запись", "SQL")
+Rel(subscriptionService, pg_subs, "Чтение/запись", "SQL")
+
+Rel(eventService, kafka, "Event producer", "Kafka")
+Rel(kafka, eventService, "event consumer", "Kafka")
+
+Rel(paymentService, paymentGateway, "Синхронный вызов", "HTTPS")
+Rel(subscriptionService, loyaltyService, "Синхронный вызов", "HTTPS")
+Rel(movieService, recomendationSystem, "Асинхронный вызов", "HTTPS")
+
+@enduml
